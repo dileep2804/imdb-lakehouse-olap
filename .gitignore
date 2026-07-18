@@ -1,0 +1,12 @@
+data/raw/*
+!data/raw/.gitkeep
+data/lake/*
+!data/lake/.gitkeep
+.DS_Store
+__pycache__/
+*.pyc
+.venv/
+venv/
+.idea/
+*.log
+kaggle.json

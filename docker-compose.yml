@@ -1,0 +1,59 @@
+services:
+  spark-master:
+    image: apache/spark:3.5.5-python3
+    user: "0:0"   # bitnami's images were deprecated; official apache/spark runs as
+                  # non-root uid 185 by default, which can't write to our host-owned
+                  # bind mount below - root avoids that local-only permission mismatch
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master"]
+    ports:
+      - "7077:7077"   # RPC port workers/driver use to register with the master
+      - "8080:8080"   # Master Web UI - see registered workers, running/completed apps
+    volumes:
+      - ./:/opt/app          # project code (etl_job.py etc.) available inside the container
+      - ./data:/opt/app/data # shared "lake" storage, faking distributed storage on one machine
+
+  spark-worker:
+    image: apache/spark:3.5.5-python3
+    user: "0:0"
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077"]
+    environment:
+      - SPARK_WORKER_MEMORY=2g
+      - SPARK_WORKER_CORES=2
+    depends_on:
+      - spark-master
+    ports:
+      - "8081:8081"   # Worker Web UI - see this worker's executors/tasks
+    volumes:
+      - ./:/opt/app
+      - ./data:/opt/app/data
+    # To run more than one worker: `docker compose up --scale spark-worker=3`
+    # (drop the fixed "8081:8081" host port mapping first, since two containers
+    # can't both bind the same host port)
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    environment:
+      # Without these, the image disables ALL network access for the 'default'
+      # user (local-only, loopback-inside-container access still works - which
+      # is why `docker compose exec clickhouse clickhouse-client` succeeds but
+      # a host-side Python client hitting the exposed port gets rejected).
+      # A plaintext password here is fine for this local-only take-home; a real
+      # deployment would use secrets management instead.
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=clickhouse
+    ports:
+      - "8123:8123"   # HTTP interface - used by clickhouse-connect (our Python client)
+      - "9000:9000"   # Native TCP protocol - used by clickhouse-client CLI
+    ulimits:           # ClickHouse recommends raised nofile limits for merge/compaction threads
+      nofile:
+        soft: 262144
+        hard: 262144
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./data/lake:/var/lib/clickhouse/user_files/lake      # exposes our Parquet lake to ClickHouse's file() table function
+                                                              # (not mounted read-only: ClickHouse's entrypoint chowns
+                                                              # everything under user_files/ on startup and needs write access)
+      - ./ddl:/docker-entrypoint-initdb.d:ro                 # .sql files here run automatically on first container start
+
+volumes:
+  clickhouse-data:

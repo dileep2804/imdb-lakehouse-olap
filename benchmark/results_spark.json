@@ -1,0 +1,51 @@
+{
+  "engine": "spark",
+  "startup_seconds": 9.573,
+  "queries": [
+    {
+      "name": "category_time_aggregation",
+      "description": "Title count + avg rating by titleType and decade (full-table scan)",
+      "median_seconds": 1.5299,
+      "all_runs_seconds": [
+        3.387,
+        1.5299,
+        0.9044
+      ],
+      "row_count": 120,
+      "total_num_titles": 1695629
+    },
+    {
+      "name": "top_rated_popular_series",
+      "description": "Top 10 highest-rated tvSeries with >10k votes (filter + sort + limit)",
+      "median_seconds": 0.2015,
+      "all_runs_seconds": [
+        0.3898,
+        0.2015,
+        0.1524
+      ],
+      "row_count": 10
+    },
+    {
+      "name": "top_genres_since_2010",
+      "description": "Most common genres since 2010 by title count (array explosion)",
+      "median_seconds": 0.9343,
+      "all_runs_seconds": [
+        1.9382,
+        0.9343,
+        0.8641
+      ],
+      "row_count": 10
+    },
+    {
+      "name": "series_with_most_episodes",
+      "description": "Parent series with the most episodes + avg episode rating",
+      "median_seconds": 1.5118,
+      "all_runs_seconds": [
+        2.2982,
+        1.3547,
+        1.5118
+      ],
+      "row_count": 10
+    }
+  ]
+}
