@@ -10,7 +10,7 @@ services:
       - "8080:8080"   # Master Web UI - see registered workers, running/completed apps
     volumes:
       - ./:/opt/app          # project code (etl_job.py etc.) available inside the container
-      - ./data:/opt/app/data # shared "lake" storage, faking distributed storage on one machine
+#      - ./data:/opt/app/data # shared "lake" storage, faking distributed storage on one machine
 
   spark-worker:
     image: apache/spark:3.5.5-python3
@@ -25,7 +25,7 @@ services:
       - "8081:8081"   # Worker Web UI - see this worker's executors/tasks
     volumes:
       - ./:/opt/app
-      - ./data:/opt/app/data
+#      - ./data:/opt/app/data
     # To run more than one worker: `docker compose up --scale spark-worker=3`
     # (drop the fixed "8081:8081" host port mapping first, since two containers
     # can't both bind the same host port)
