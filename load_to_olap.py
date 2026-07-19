@@ -9,16 +9,8 @@ all the actual data movement happens inside ClickHouse's native engine.
 """
 import clickhouse_connect
 
-LAKE_GLOB = "lake/titles/**/*.parquet"  # relative to ClickHouse's user_files_path
-                                        # (see docker-compose.yml volume mount)
+LAKE_GLOB = "lake/titles/**/*.parquet"
 
-# Two gotchas baked into this SELECT, both found by testing against the real data
-# (see ddl/01_titles.sql and etl_job.py comments for the full reasoning):
-#   - startYear/decade get the sentinel-0 treatment because MergeTree ORDER BY /
-#     PARTITION BY keys can't be Nullable.
-#   - decade is a hive-partitioning *virtual* column, parsed from the folder name
-#     (e.g. "decade=2020"), not a physical column inside the Parquet file itself -
-#     it must be named explicitly, since a bare `SELECT *` silently drops it.
 INSERT_SELECT_QUERY = f"""
 INSERT INTO imdb.titles
 SELECT
@@ -47,7 +39,7 @@ def main():
         host="localhost", port=8123, username="default", password="clickhouse"
     )
 
-    client.command("TRUNCATE TABLE imdb.titles")  # idempotent: safe to re-run
+    client.command("TRUNCATE TABLE imdb.titles")
     client.command(INSERT_SELECT_QUERY)
 
     row_count = client.command("SELECT count() FROM imdb.titles")

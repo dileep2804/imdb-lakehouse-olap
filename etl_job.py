@@ -69,14 +69,7 @@ def build_titles_lake(spark):
         .withColumn("endYear", F.col("endYear").cast(IntegerType()))
         .withColumn("runtimeMinutes", F.col("runtimeMinutes").cast(IntegerType()))
         .withColumn("genres", F.split(F.col("genres"), ","))
-        # 0 = unknown startYear. Kept as a sentinel (not null) specifically because
-        # this column drives partitionBy below: a null partition value becomes a
-        # literal "__HIVE_DEFAULT_PARTITION__" folder, which downstream readers that
-        # infer one unified type per partition glob (e.g. ClickHouse's hive-partitioning
-        # virtual columns) cannot mix with the numeric decade folders in one read.
-        .withColumn(
-            "decade",
-            F.coalesce((F.floor(F.col("startYear") / 10) * 10).cast(IntegerType()), F.lit(0))
+        .withColumn("decade", F.coalesce((F.floor(F.col("startYear") / 10) * 10).cast(IntegerType()), F.lit(0))
         )
     )
 
@@ -105,9 +98,6 @@ def main():
 
     (
         titles
-        # Repartition BY the partition columns (not a plain shuffle) so rows
-        # headed for the same titleType/decade folder land in fewer Spark
-        # partitions, avoiding a file-per-task fragmentation explosion.
         .repartition(args.num_partitions, "titleType", "decade")
         .write
         .mode("overwrite")
